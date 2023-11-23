@@ -4,30 +4,29 @@
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
 
 import java.io.IOException;
 import java.util.List;
 
-public class WebTesting {
+public class WebTestingLinkedIn {
     static String loginPage = "https://www.linkedin.com/login";
     static String userName = "mesfin.assres@gmail.com";
     static String passWord = "********";
-    public static WebDriver driver = new EdgeDriver();
+    //public static WebDriver driver = new EdgeDriver();
+    public static WebDriver driver = new ChromeDriver();
 
     public static void main(String[] args) {
         //Web driver setting
-        System.setProperty("webdriver.edge.driver", "resources/msedgedriver.exe");
+        //System.setProperty("webdriver.edge.driver", "resources/msedgedriver.exe");
+        System.setProperty("webdriver.chrome.driver","resources/chromedriver.exe");
         driver.manage().window().maximize();
         //Instantiate an object
-        WebTesting webTesting = new WebTesting();
-
+        WebTestingLinkedIn webTesting = new WebTestingLinkedIn();
         //Launch website
         webTesting.openTestSite();
-        
         //Invoke login method
         webTesting.login();
-
         try {
             webTesting.getPage(loginPage);
         } catch (IOException e) {
@@ -63,31 +62,42 @@ public class WebTesting {
          login.click();
     }
     public void getPage(String website) throws IOException {
-
+        String homePage = "https://sites.google.com/site/mesfinassres/home";
         driver.navigate().to(website);
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
         List<WebElement> allLinks = driver.findElements(By.tagName("a"));
+        int size = allLinks.size();
+        System.out.println("Total no of links Available: " + size);
+        String[] fileAddress = new String[100];
 
-        System.out.println("Total no of links Available: " + allLinks.size());
-
-        for (int i = 0; i < allLinks.size(); i++) {
-
+        for (int i = 0; i < size; i++) {
+            fileAddress[i] = allLinks.get(i).getAttribute("href");
+            System.out.println(fileAddress[i]);
+        }
+        for (int i = 0; i < size; i++) {
+            //Delay
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            //Open Webpages
+            if (fileAddress[i]!= homePage)
+                driver.get(fileAddress[i]);
+        }
+        /*
+        for (int i = 0; i < size; i++) {
             String fileAddress = allLinks.get(i).getAttribute("href");
-
             System.out.println(fileAddress);
-            if (fileAddress.contains("Notifications")) {
+
+            if (fileAddress.contains("links")) {
                 driver.get(fileAddress);
             } else {
                 getPage(allLinks.get(i).getAttribute("href"));
             }
         }
 
+         */
     }
     public void assertEquals(String expectedVal, String actualVal){
            if(actualVal.equalsIgnoreCase(expectedVal)) {
