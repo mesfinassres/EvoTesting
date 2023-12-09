@@ -6,7 +6,7 @@ public class TestData {
 
     private String srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape;
     public TestData (String srcURL, String srcHtmlShape, String trigger, String dstURL, String dstHtmlShape){
-        this.setDstURL(srcURL);
+        this.setSrcURL(srcURL);
         this.setSrcHtmlShape(srcHtmlShape);
         this.setTrigger(trigger);
         this.setDstURL(dstURL);

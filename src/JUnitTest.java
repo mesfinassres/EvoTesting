@@ -28,6 +28,13 @@ public class JUnitTest {
     public static String expectedURL = "https://www.saucedemo.com/inventory.html";
     JSONObject jsonObject;
     JSONArray dataList = new JSONArray();
+    TestData testData;
+
+    //Attributes of the JSON file
+    public String srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape;
+
+    //Content of source and destination HTML document
+    String srcHtml, dstHtml;
 
     FileWriter file = null;
 
@@ -37,8 +44,7 @@ public class JUnitTest {
         driver.manage().window().maximize();
     }
     @Test
-    public void assertLogin() throws InterruptedException {
-        String srcHtml, dstHtml;
+    public void loginPageTest() throws Exception, InterruptedException {
 
         driver.get(loginPage);
         srcHtml = driver.getPageSource();
@@ -46,6 +52,13 @@ public class JUnitTest {
         driver.findElement(By.id("user-name")).sendKeys("standard_user");
         driver.findElement(By.id("password")).sendKeys("secret_sauce");
         driver.findElement(By.xpath("//*[@id='login-button']")).click();
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         dstHtml = driver.getPageSource();
 
         String actualURL = driver.getCurrentUrl();
@@ -53,55 +66,85 @@ public class JUnitTest {
         Assert.assertEquals(expectedURL, actualURL);
         System.out.println("Login test passed.");
 
-        //ID PAGE (= URL + HTML SHAPE)
-        TestData testData = new TestData(loginPage, computeIdentifyingShape(srcHtml), "xpath: //*[@id='login-button']", actualURL, computeIdentifyingShape(dstHtml));
+        //Build JSON record: ID PAGE (= URL + HTML SHAPE)
+        srcURL       = loginPage;
+        srcHtmlShape = computeIdentifyingShape(srcHtml);
+        trigger      = "xpath: //*[@id='login-button']";
+        dstURL       = actualURL;
+        dstHtmlShape = computeIdentifyingShape(dstHtml);
+
+        testData = new TestData(srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape);
         dataList.add(testData.buildJsonObject());
+//    }
+//    @After
+//    public void mainPageTest() throws Exception{
+//        TestData testData;
+        List<String> urlLinks = getUrlInALinks(dstHtml);
+        System.out.println(urlLinks.toString());
 
-        //addData(testData.buildJsonObject());
-        TestData testData2 = new TestData("loginPage", "computeIdentifyingShape", "xpath: //*[@id='login-button']", "actualURL", "computeIdentifyingShape");
-        dataList.add(testData2.buildJsonObject());
+        srcURL       = dstURL;
+        srcHtmlShape = dstHtmlShape;
 
-        driver.findElement(By.cssSelector("a[id='item_4_title_link']")).click();
-        System.out.println(driver.getCurrentUrl().toString());
+        for (String link:urlLinks){
+            if (!link.contains("#") && !link.isEmpty()) {
+                driver.get(link);
+                System.out.println(driver.getCurrentUrl());
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                trigger      = link;
+                dstURL       = driver.getCurrentUrl().toString();
+                dstHtmlShape = computeIdentifyingShape(driver.getPageSource());
+                System.out.println(srcURL.toString());
+
+                testData =  new TestData(srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape);
+                dataList.add(testData.buildJsonObject());
+
+                driver.navigate().back();
+            }
+        }
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        srcURL       = dstURL;
+        srcHtmlShape = dstHtmlShape;
+        List<String> idLinks = getIdInLinks(dstHtml);
+        System.out.println(idLinks.toString());
+        String cssSelect=null;
+        for (String link:idLinks){
+            if (!link.contains("sidebar") && !link.isEmpty()) {
+                cssSelect = "a[id='"+link+"']";
+                driver.findElement(By.cssSelector(cssSelect)).click();
+                System.out.println(driver.getCurrentUrl());
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                trigger      = "css_selector:" + link;
+                dstURL       = driver.getCurrentUrl().toString();
+                dstHtmlShape = computeIdentifyingShape(driver.getPageSource());
+                testData = new TestData(srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape);
+                dataList.add(testData.buildJsonObject());
+
+                driver.navigate().back();
+            }
+        }
+
     }
-    @Test
+    @After
     public void assertTitle() {
         String actualTitle = driver.getTitle();
         System.out.println(actualTitle);
         Assert.assertEquals("Swag Labs", actualTitle);
         System.out.println("Title test passed.");
-    }
-    @Test
-    public void assertLinks() throws Exception{
-        List<WebElement> allLinks = driver.findElements(By.tagName("a"));
-        Assert.assertEquals(20, allLinks.size());
-        System.out.println("# links test passed. Total no of links available: " + allLinks.size());
-        printLinksID(allLinks);
-    }
-    @Test
-    public void assertHTML() {
-        String htmlContent = driver.getPageSource();
-        String errorCheckResult = checkErrorsInHtml(htmlContent);
-        List<String> urls = getUrlInALinks(htmlContent);
-        String pathAndQueries = getPathAndQueries(expectedURL);
-        String shape = computeIdentifyingShape(htmlContent);
-        URL url = null;
-        try {
-            url = new URL(expectedURL);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        boolean isLinkValid = checkLink(url);
-
-        // Print the results
-        System.out.println("Error Check Result:\n" + errorCheckResult);
-        System.out.println("\nExtracted URLs:");
-        for (String u : urls) {
-            System.out.println(u);
-        }
-        System.out.println("\nPath and Queries: " + pathAndQueries);
-        System.out.println("\nIdentifying Shape: " + shape);
-        System.out.println("\nIs Link Valid? " + isLinkValid);
     }
     @After
     public void saveTest() throws Exception{
@@ -110,6 +153,17 @@ public class JUnitTest {
     @AfterClass
     public static void closeBrowser(){
         driver.close();
+    }
+
+    public void addToJsonFile(JSONArray jsonArray){
+        try {
+            file = new FileWriter("testData.json");
+            file.write(jsonArray.toJSONString());
+            file.flush();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static String checkErrorsInHtml(String html) {
@@ -128,7 +182,13 @@ public class JUnitTest {
                 .map(link -> link.attr("href"))
                 .collect(Collectors.toList());
     }
-
+    public static List<String> getIdInLinks(String html) {
+        Document document = Jsoup.parse(html);
+        return document.getElementsByTag("a")
+                .stream()
+                .map(link -> link.attr("id"))
+                .collect(Collectors.toList());
+    }
     public static String getPathAndQueries(String url) {
         try {
             URL parsedUrl = new URL(url);
@@ -179,34 +239,6 @@ public class JUnitTest {
             return true;
         } catch (IOException e) {
             return false;
-        }
-    }
-
-    public void printLinksID(List<WebElement> allLinks){
-        String fileAddress;
-
-        for (int i = 0; i < allLinks.size(); i++) {
-            fileAddress = allLinks.get(i).getAttribute("href");
-            String getIDs = allLinks.get(i).getAttribute("id");
-            String uniqueLinks = null;
-
-            if (fileAddress != null) {
-                if (getIDs.contains("item"))
-                    uniqueLinks = fileAddress.replaceAll("#", "?id=") + allLinks.get(i).getAttribute("id").replaceAll("[^0-9]", "");
-                else uniqueLinks = fileAddress;
-                System.out.println(uniqueLinks);
-            }
-        }
-    }
-
-    public void addToJsonFile(JSONArray jsonArray){
-        try {
-            file = new FileWriter("testData.json");
-            file.write(jsonArray.toJSONString());
-            file.flush();
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 }
