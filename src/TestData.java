@@ -5,6 +5,8 @@ import org.json.simple.JSONObject;
 public class TestData {
 
     private String srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape;
+    public TestData() {
+    }
     public TestData (String srcURL, String srcHtmlShape, String trigger, String dstURL, String dstHtmlShape){
         this.setSrcURL(srcURL);
         this.setSrcHtmlShape(srcHtmlShape);

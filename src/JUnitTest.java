@@ -13,6 +13,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,9 +27,10 @@ public class JUnitTest {
     public static WebDriver driver = new ChromeDriver();
     public static String loginPage = "https://www.saucedemo.com/";
     public static String expectedURL = "https://www.saucedemo.com/inventory.html";
+
     JSONObject jsonObject;
     JSONArray dataList = new JSONArray();
-    TestData testData;
+    TestData testData = new TestData();
 
     //Attributes of the JSON file
     public String srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape;
@@ -75,10 +77,10 @@ public class JUnitTest {
 
         testData = new TestData(srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape);
         dataList.add(testData.buildJsonObject());
-//    }
-//    @After
-//    public void mainPageTest() throws Exception{
-//        TestData testData;
+    }
+    @After
+    public void mainPageTest() throws Exception{
+
         List<String> urlLinks = getUrlInALinks(dstHtml);
         System.out.println(urlLinks.toString());
 
@@ -98,7 +100,6 @@ public class JUnitTest {
                 trigger      = link;
                 dstURL       = driver.getCurrentUrl().toString();
                 dstHtmlShape = computeIdentifyingShape(driver.getPageSource());
-                System.out.println(srcURL.toString());
 
                 testData =  new TestData(srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape);
                 dataList.add(testData.buildJsonObject());
@@ -121,7 +122,6 @@ public class JUnitTest {
             if (!link.contains("sidebar") && !link.isEmpty()) {
                 cssSelect = "a[id='"+link+"']";
                 driver.findElement(By.cssSelector(cssSelect)).click();
-                System.out.println(driver.getCurrentUrl());
                 try {
                     Thread.sleep(2000);
                 } catch (InterruptedException e) {
@@ -131,24 +131,22 @@ public class JUnitTest {
                 trigger      = "css_selector:" + link;
                 dstURL       = driver.getCurrentUrl().toString();
                 dstHtmlShape = computeIdentifyingShape(driver.getPageSource());
+
                 testData = new TestData(srcURL, srcHtmlShape, trigger, dstURL, dstHtmlShape);
                 dataList.add(testData.buildJsonObject());
+
+                System.out.println(trigger);
 
                 driver.navigate().back();
             }
         }
-
+        addToJsonFile(dataList);
     }
-    @After
     public void assertTitle() {
         String actualTitle = driver.getTitle();
         System.out.println(actualTitle);
         Assert.assertEquals("Swag Labs", actualTitle);
         System.out.println("Title test passed.");
-    }
-    @After
-    public void saveTest() throws Exception{
-        addToJsonFile(dataList);
     }
     @AfterClass
     public static void closeBrowser(){
